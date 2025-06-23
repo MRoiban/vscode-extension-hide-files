@@ -7,8 +7,6 @@
         "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        "out": true,
-        "dist": true,
         "webpack.config.js": true,
         "package-lock.json": true,
         ".vscode": true,
@@ -20,7 +18,8 @@
         "*.md": true,
         "ts.config.json": true,
         ".eslin*": true,
-        ".vscode*": true
+        ".vscode*": true,
+        "dist": true
     },
     "search.exclude": {
         "out": true, // set this to false to include "out" folder in search results

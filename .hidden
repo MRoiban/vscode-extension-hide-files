@@ -10,3 +10,4 @@ yarn*
 ts.config.json
 .eslin*
 .vscode*
+dist

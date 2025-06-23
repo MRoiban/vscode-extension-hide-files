@@ -1,49 +1,43 @@
-import {
-  TreeDataProvider,
-  TreeItem,
-  EventEmitter,
-  Event,
-  Command,
-  TreeItemCollapsibleState,
-} from "vscode";
-import { getAllExcludedFiles } from "./config";
+import * as vscode from 'vscode';
+import { configManager } from './ConfigManager';
 
-export class HiddenFilesProvider implements TreeDataProvider<TreeItem> {
-  constructor() {}
+export class HiddenFilesProvider implements vscode.TreeDataProvider<FileTreeItem> {
+  private _onDidChangeTreeData: vscode.EventEmitter<FileTreeItem | undefined | null | void> = new vscode.EventEmitter();
+  readonly onDidChangeTreeData: vscode.Event<FileTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-  getTreeItem(element: TreeItem): TreeItem {
+  constructor() {
+    configManager.onDidChangeHiddenFiles(() => this.refresh());
+  }
+
+  getTreeItem(element: FileTreeItem): FileTreeItem {
     return element;
   }
 
-  getChildren(element?: TreeItem) {
-    const files = getAllExcludedFiles();
+  getChildren(element?: FileTreeItem): vscode.ProviderResult<FileTreeItem[]> {
+    if (element) {
+      return Promise.resolve([]);
+    }
 
-    return files.map((file) => {
-      const item = new File(file, {
-        command: "hide-files.show",
-        title: "Show",
-        arguments: [file],
-      });
-
-      return item;
-    });
+    const hiddenFiles = configManager.getSavedHiddenFiles();
+    return Promise.resolve(
+      hiddenFiles.map(file => new FileTreeItem(file))
+    );
   }
-
-  private _onDidChangeTreeData: EventEmitter<
-    TreeItem | undefined | null | void
-  > = new EventEmitter<TreeItem | undefined | null | void>();
-  readonly onDidChangeTreeData: Event<TreeItem | undefined | null | void> =
-    this._onDidChangeTreeData.event;
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
   }
 }
 
-class File extends TreeItem {
-  constructor(public readonly label: string, command: Command) {
-    super(label, TreeItemCollapsibleState.None);
-
-    this.command = command;
+class FileTreeItem extends vscode.TreeItem {
+  constructor(public readonly label: string) {
+    super(label, vscode.TreeItemCollapsibleState.None);
+    this.tooltip = `Click to show this file again`;
+    this.command = {
+      command: 'hide-files.show',
+      title: 'Show File',
+      arguments: [this.label],
+    };
+    this.iconPath = new vscode.ThemeIcon('eye-closed');
   }
 }

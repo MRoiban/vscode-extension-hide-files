@@ -20,7 +20,7 @@
       "properties": {
         "hide-files.files": {
           "type": "array",
-          "default": false,
+          "default": [],
           "description": "List of files to hide."
         }
       }
@@ -94,10 +94,7 @@
     "webpack": "^5.52.1",
     "webpack-cli": "^4.10.0"
   },
-  "dependencies": {
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7"
-  },
+  "dependencies": {},
   "publisher": "roonie007",
   "repository": {
     "url": "https://github.com/roonie007/vscode-extension-hide-files"

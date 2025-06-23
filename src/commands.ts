@@ -1,47 +1,48 @@
-import { ExtensionContext, commands } from "vscode";
-import { excludeFiles, includeFile } from "./config";
-import { $log, hiddenFilesProvider } from "./utils";
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { configManager } from './ConfigManager';
+import { hiddenFilesProvider } from './extension';
+import { workspaceManager } from './WorkspaceManager';
 
-interface VsCodeFile {
-  path: string;
+export function registerCommands(context: vscode.ExtensionContext) {
+  context.subscriptions.push(
+    vscode.commands.registerCommand('hide-files.hide', handleHide),
+    vscode.commands.registerCommand('hide-files.show', handleShow),
+    vscode.commands.registerCommand('hide-files.refresh', handleRefresh)
+  );
 }
 
-export const hide = (...args: [VsCodeFile, Array<VsCodeFile>]): void => {
-  const [, files] = args;
-  const filesToExclude = files
-    .filter((file) => typeof file.path === "string")
-    .map((file) => file.path);
-
-  excludeFiles(filesToExclude);
-  refresh();
-};
-
-export const show = (fileRelativePath: string): void => {
-  includeFile(fileRelativePath);
-  refresh();
-};
-
-export const refresh = (): void => {
-  setTimeout(() => {
-    if (hiddenFilesProvider) {
-      // Refresh HIDDEN FILES view
-      hiddenFilesProvider.refresh();
-
-      // Refresh EXPLORER view
-      commands.executeCommand("workbench.files.action.refreshFilesExplorer");
-    }
-  }, 1000);
-};
-
-export const registerCommands = (context: ExtensionContext) => {
-  const hideFilesCommands: Array<[string, (...args: any[]) => any]> = [
-    ["hide-files.hide", hide],
-    ["hide-files.show", show],
-    ["hide-files.refresh", refresh],
-  ];
-
-  for (const [command, handler] of hideFilesCommands) {
-    context.subscriptions.push(commands.registerCommand(command, handler));
-    $log(`Registred command ${command}`);
+async function handleHide(uri: vscode.Uri, uris: vscode.Uri[]): Promise<void> {
+  console.log('handleHide called with:', { uri, uris });
+  
+  const rootPath = workspaceManager.getRootPath();
+  if (!rootPath) {
+    vscode.window.showErrorMessage('No workspace folder found.');
+    return;
   }
-};
+
+  const filesToHide = (uris || [uri])
+    .filter(u => u && u.fsPath)
+    .map(u => {
+      const relativePath = path.relative(rootPath, u.fsPath);
+      console.log('Hiding file:', relativePath, 'from:', u.fsPath);
+      return relativePath;
+    });
+
+  console.log('Files to hide:', filesToHide);
+
+  for (const file of filesToHide) {
+    await configManager.addFileToHidden(file);
+  }
+  
+  vscode.window.showInformationMessage(`Hidden ${filesToHide.length} file(s)`);
+}
+
+async function handleShow(fileRelativePath: string): Promise<void> {
+  await configManager.removeFileFromHidden(fileRelativePath);
+}
+
+function handleRefresh(): void {
+  hiddenFilesProvider.refresh();
+  vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
+}
