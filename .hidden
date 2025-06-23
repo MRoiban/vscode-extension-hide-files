@@ -1,5 +1,12 @@
-yarn.lock
 webpack.config.js 
 package-lock.json
 .vscode
 node_modules
+.yarnrc
+bun.lockb
+LICENSE.md
+yarn*
+*.md
+ts.config.json
+.eslin*
+.vscode*
