@@ -1,0 +1,43 @@
+---
+description: This document outlines the planned refactoring of the `hide-files` VS Code extension to improve its robustness, maintainability, and adherence to best practices.
+globs: 
+alwaysApply: false
+---
+# Codebase Refactoring Plan
+
+This document outlines the planned refactoring of the `hide-files` VS Code extension to improve its robustness, maintainability, and adherence to best practices.
+
+## Current Issues Addressed:
+
+*   **Fragile Workspace Handling:** Reliance on a single workspace folder.
+*   **Poor State Management:** Use of global module-level variables.
+*   **Unreliable Timeouts:** Dependence on `setTimeout` for synchronization.
+*   **Monolithic Utilities:** `src/utils.ts` acting as a "god object."
+*   **Incorrect Dependencies:** `fs` and `path` listed as npm dependencies.
+*   **Synchronous I/O:** Blocking operations in file system access.
+
+## New Architecture:
+
+The refactoring introduces a service-oriented architecture with dedicated managers:
+
+*   **[src/WorkspaceManager.ts](mdc:src/WorkspaceManager.ts):** A singleton responsible for all workspace-related interactions, including getting the root path and workspace configurations. This centralizes workspace access and prepares for multi-root workspace support.
+*   **[src/ConfigManager.ts](mdc:src/ConfigManager.ts):** A singleton that handles all extension configuration, including reading/writing settings and managing the `files.exclude` setting. It will also orchestrate the merging of user-defined hidden files and those specified in the `.hidden` file.
+*   **[src/hiddenFile.ts](mdc:src/hiddenFile.ts):** A new module dedicated to reading and parsing the `.hidden` file content asynchronously, using `vscode.workspace.fs`.
+
+## Refactored Components:
+
+*   **[src/extension.ts](mdc:src/extension.ts):** The main entry point will be responsible for initializing the `WorkspaceManager`, `ConfigManager`, registering commands, setting up the `HiddenFilesProvider`, and establishing file system watchers for relevant files (e.g., `.hidden`).
+*   **[src/commands.ts](mdc:src/commands.ts):** Commands (`hide`, `show`, `refresh`) will be simplified, delegating their core logic to the `ConfigManager`. Unreliable `setTimeout` calls will be removed, and arguments will be handled robustly.
+*   **[src/HiddenFilesProvider.ts](mdc:src/HiddenFilesProvider.ts):** This view provider will fetch the list of hidden files directly from the `ConfigManager` and trigger refreshes as needed.
+
+## Deprecated/Removed Files:
+
+*   `src/utils.ts`: Its responsibilities are distributed among the new managers and other components.
+*   `src/config.ts`: Its configuration management logic is entirely replaced by `src/ConfigManager.ts`.
+
+## Expected Improvements:
+
+*   **Enhanced Robustness:** Eliminates race conditions and handles multi-root workspaces more gracefully.
+*   **Increased Maintainability:** Clear separation of concerns, easier to understand and extend.
+*   **Improved Performance:** Asynchronous I/O operations prevent UI blocking.
+*   **Better Adherence to VS Code API Best Practices.**
